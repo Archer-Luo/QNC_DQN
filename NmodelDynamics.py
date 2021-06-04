@@ -1,9 +1,7 @@
-import random as r
 import numpy as np
 from network_dict import network_dictionary
 import itertools
 import copy
-
 
 
 class ProcessingNetwork:
