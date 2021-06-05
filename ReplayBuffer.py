@@ -12,8 +12,8 @@ class ReplayBuffer:
         """
         Arguments:
             size: Integer, Number of stored transitions
-            input_shape: Shape of the preprocessed frame
-            history_length: Integer, Number of frames stacked together to create a state for the agent
+            input_shape: Shape of the preprocessed state
+            history_length: Integer, Number of states stacked together to create a state for the agent
             use_per: Use PER instead of classic experience replay
         """
         self.size = size
@@ -36,12 +36,12 @@ class ReplayBuffer:
         Arguments:
             action: An integer between 0 and env.action_space.n - 1
                 determining the action the agent perfomed
-            state: A (84, 84, 1) frame of the game in grayscale
+            state: A (1, 2) state
             reward: A float determining the reward the agend received for performing an action
             terminal: A bool stating whether the episode terminated
         """
         if state.shape != self.input_shape:
-            raise ValueError('Dimension of frame is wrong!')
+            raise ValueError('Dimension of the state is wrong!')
 
         # Write memory
         self.actions[self.current] = action
@@ -76,14 +76,14 @@ class ReplayBuffer:
         indices = []
         for i in range(batch_size):
             while True:
-                # Get a random number from history_length to maximum frame written with probabilities based on priority weights
+                # Get a random number from history_length to maximum state written with probabilities based on priority weights
                 if self.use_per:
                     index = np.random.choice(np.arange(self.history_length, self.count-1), p=sample_probabilities)
                 else:
                     index = random.randint(self.history_length, self.count - 1)
 
-                # We check that all frames are from same episode with the two following if statements.  If either are True, the index is invalid.
-                if index >= self.current and index - self.history_length <= self.current:
+                # We check that all states are from same episode with the two following if statements.  If either are True, the index is invalid.
+                if index >= self.current >= index - self.history_length:
                     continue
                 if self.terminal_flags[index - self.history_length:index].any():
                     continue
@@ -94,8 +94,8 @@ class ReplayBuffer:
         states = []
         new_states = []
         for idx in indices:
-            states.append(self.frames[idx-self.history_length:idx, ...])
-            new_states.append(self.frames[idx-self.history_length+1:idx+1, ...])
+            states.append(self.states[idx-self.history_length:idx, ...])
+            new_states.append(self.states[idx-self.history_length+1:idx+1, ...])
 
         states = np.transpose(np.asarray(states), axes=(0, 2, 3, 1))
         new_states = np.transpose(np.asarray(new_states), axes=(0, 2, 3, 1))
@@ -114,6 +114,7 @@ class ReplayBuffer:
         Arguments:
             indices: Indices to update
             errors: For each index, the error between the target Q-vals and the predicted Q-vals
+            offset: base priority scale
         """
         for i, e in zip(indices, errors):
             self.priorities[i] = abs(e) + offset
@@ -125,13 +126,13 @@ class ReplayBuffer:
             os.mkdir(folder_name)
 
         np.save(folder_name + '/actions.npy', self.actions)
-        np.save(folder_name + '/frames.npy', self.frames)
+        np.save(folder_name + '/states.npy', self.states)
         np.save(folder_name + '/rewards.npy', self.rewards)
         np.save(folder_name + '/terminal_flags.npy', self.terminal_flags)
 
     def load(self, folder_name):
         """Loads the replay buffer from a folder"""
         self.actions = np.load(folder_name + '/actions.npy')
-        self.frames = np.load(folder_name + '/frames.npy')
+        self.states = np.load(folder_name + '/states.npy')
         self.rewards = np.load(folder_name + '/rewards.npy')
         self.terminal_flags = np.load(folder_name + '/terminal_flags.npy')
