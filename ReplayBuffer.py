@@ -69,14 +69,21 @@ class ReplayBuffer:
             scaled_priorities = self.priorities[0:self.count-1] ** priority_scale
             sample_probabilities = scaled_priorities / sum(scaled_priorities)
             indices = np.random.choice(self.count-1, size=batch_size, replace=False, p=sample_probabilities)
+            importance = 1 / self.count * 1 / sample_probabilities[indices]
+            importance = importance / importance.max()
+            # Retrieve states from memory
+            states = self.states[indices, ...]
+            new_states = self.states[indices + 1, ...]
+
+            return (states, self.actions[indices], self.rewards[indices], new_states,
+                    self.terminal_flags[indices]), importance, indices
         else:
             indices = np.random.choice(self.count-1, size=batch_size, replace=False)
+            # Retrieve states from memory
+            states = self.states[indices, ...]
+            new_states = self.states[indices + 1, ...]
 
-        # Retrieve states from memory
-        states = self.states[indices, ...]
-        new_states = self.states[indices+1, ...]
-
-        return states, self.actions[indices], self.rewards[indices], new_states, self.terminal_flags[indices]
+            return states, self.actions[indices], self.rewards[indices], new_states, self.terminal_flags[indices]
 
     def set_priorities(self, indices, errors, offset=0.1):
         """Update priorities for PER
