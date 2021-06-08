@@ -7,7 +7,7 @@ class ReplayBuffer:
     """Replay Buffer to store transitions.
     This implementation was heavily inspired by Fabio M. Graetz's replay buffer
     here: https://github.com/fg91/Deep-Q-Learning/blob/master/DQN.ipynb"""
-    def __init__(self, size=1000000, input_shape=(1, 2), use_per=True):
+    def __init__(self, size=1000000, input_shape=(2,), use_per=True):
         """
         Arguments:
             size: Integer, Number of stored transitions
@@ -23,7 +23,7 @@ class ReplayBuffer:
         self.actions = np.empty(self.size, dtype=np.int32)
         self.rewards = np.empty(self.size, dtype=np.float32)
         self.terminal_flags = np.empty(self.size, dtype=np.bool)
-        self.states = np.empty((self.size, self.input_shape[0], self.input_shape[1]), dtype=np.uint8)
+        self.states = np.empty((self.size, 1, self.input_shape[0]), dtype=np.uint8)
         self.priorities = np.zeros(self.size, dtype=np.float32)
 
         self.use_per = use_per
@@ -38,7 +38,7 @@ class ReplayBuffer:
             terminal: A bool stating whether the episode terminated
         """
         if state.shape != self.input_shape:
-            raise ValueError('Dimension of the state is wrong!')
+            raise ValueError('Dimension of the state is wrong! state shape is %s and input_shape is %s' % (state.shape, self.input_shape,))
 
         # Write memory
         self.actions[self.current] = action
@@ -61,7 +61,7 @@ class ReplayBuffer:
                 An array of each index that was sampled
         """
 
-        if self.count < batch_size:
+        if self.count - 1 < batch_size:
             raise ValueError('Not enough memories to get a minibatch')
 
         # Get sampling probabilities from priority list and get a list of indices

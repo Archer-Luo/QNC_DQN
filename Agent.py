@@ -14,7 +14,7 @@ class Agent(object):
                  target_dqn,
                  replay_buffer,
                  n_actions,
-                 input_shape=(1, 2),
+                 input_shape=(2,),
                  batch_size=32,
                  eps_initial=1,
                  eps_final=0.1,
@@ -65,7 +65,7 @@ class Agent(object):
         self.slope = -(self.eps_initial - self.eps_final) / self.eps_annealing_states
         self.intercept = self.eps_initial - self.slope * self.replay_buffer_start_size
         self.slope_2 = -(self.eps_final - self.eps_final_state) / (
-                    self.max_states - self.eps_annealing_states - self.replay_buffer_start_size)
+                self.max_states - self.eps_annealing_states - self.replay_buffer_start_size)
         self.intercept_2 = self.eps_final_state - self.slope_2 * self.max_states
 
         # DQN
@@ -107,7 +107,7 @@ class Agent(object):
             return np.random.randint(0, self.n_actions)
 
         # Otherwise, query the DQN for an action
-        q_vals = self.DQN.predict(state)[0]  # TODO: correct input here?
+        q_vals = self.DQN.predict(state).flatten()  # TODO: correct input here?
         return q_vals.argmax()
 
     # def get_intermediate_representation(self, state, layer_names=None, stack_state=True):
@@ -166,23 +166,20 @@ class Agent(object):
                 batch_size=self.batch_size, priority_scale=priority_scale)
 
         # Main DQN estimates best action in new states
-        arg_q_max = self.DQN.predict(new_states).argmax(axis=1)
+        predictions = self.DQN.predict(new_states).squeeze()  # shape: 8, 1, 2
+        arg_q_max = predictions.argmax(axis=1)
 
         # Target DQN estimates q-vals for new states
-        future_q_vals = self.target_dqn.predict(new_states)
-        double_q = future_q_vals[range(batch_size), arg_q_max]
+        future_q_vals = self.target_dqn.predict(new_states).squeeze()
+        double_q = future_q_vals[np.arange(batch_size), arg_q_max]
 
         # Calculate targets (bellman equation)
         target_q = rewards + (gamma * double_q * (1 - terminal_flags))
 
         # Use targets to calculate loss (and use loss to calculate gradients)
         with tf.GradientTape() as tape:
-            q_values = self.DQN(states)
-
-            one_hot_actions = tf.keras.utils.to_categorical(actions, self.n_actions,
-                                                            dtype=np.float32)  # using tf.one_hot causes strange errors
-            Q = tf.reduce_sum(tf.multiply(q_values, one_hot_actions), axis=1)
-
+            q_values = self.DQN.predict(states).squeeze()
+            Q = q_values[np.arange(batch_size), arg_q_max]
             error = Q - target_q
             loss = tf.keras.losses.Huber()(target_q, Q)
 

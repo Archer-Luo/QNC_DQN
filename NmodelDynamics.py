@@ -141,9 +141,9 @@ class ProcessingNetwork:
             state_next = state + np.asarray([0, 1])
         elif wi == 2 and (state[0] > 0):
             state_next = state - np.asarray([1, 0])
-        elif wi == 3 and ((action[0] == 1 or state[1] == 0) and state[0] > 1):
+        elif wi == 3 and ((action == 1 or state[1] == 0) and state[0] > 1):
             state_next = state - np.asarray([1, 0])
-        elif wi == 4 and ((action[0] == 0 or state[0] < 2) and state[1] > 0):
+        elif wi == 4 and ((action == 0 or state[0] < 2) and state[1] > 0):
             state_next = state - np.asarray([0, 1])
         else:
             state_next = state
