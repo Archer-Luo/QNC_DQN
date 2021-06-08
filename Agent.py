@@ -165,16 +165,11 @@ class Agent(object):
             states, actions, rewards, new_states, terminal_flags = self.replay_buffer.get_minibatch(
                 batch_size=self.batch_size, priority_scale=priority_scale)
 
-        # Main DQN estimates best action in new states
-        predictions = self.DQN.predict(new_states).squeeze()  # shape: 8, 1, 2
-        arg_q_max = predictions.argmax(axis=1)
-
         # Target DQN estimates q-vals for new states
-        future_q_vals = self.target_dqn.predict(new_states).squeeze()
-        double_q = future_q_vals[np.arange(batch_size), arg_q_max]
+        target_future_v = np.amax(self.target_dqn.predict(new_states).squeeze(), axis=1)
 
         # Calculate targets (bellman equation)
-        target_q = rewards + (gamma * double_q * (1 - terminal_flags))
+        target_q = rewards + (gamma * target_future_v * (1 - terminal_flags))
 
         # Use targets to calculate loss (and use loss to calculate gradients)
         with tf.GradientTape() as tape:

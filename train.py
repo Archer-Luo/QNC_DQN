@@ -60,12 +60,13 @@ if __name__ == "__main__":
             if t % C == 0:
                 agent.update_target_network()
             action = agent.get_action(t, current_state)
-            next_state = network.next_state_N1(current_state, action).T
-            reward = -(next_state @ h)
+            next_state = network.next_state_N1(current_state, action).flatten()
+            reward = -((next_state - current_state) @ h)
             terminal = (t == max_time_step - 1)
             agent.add_experience(action, current_state, reward, terminal)
             if replay_buffer.count > replay_buffer_start_size:
                 agent.learn(batch_size, gamma, t, priority_scale)
+            current_state = next_state
 
 
 
