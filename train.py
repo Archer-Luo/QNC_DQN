@@ -39,13 +39,13 @@ if __name__ == "__main__":
         current_state = np.copy(start_state)
 
         dqn = keras.Sequential([
-            keras.layers.Dense(10, input_dim=2, activation='relu'),
+            keras.layers.Dense(10, input_shape=input_shape, activation='relu'),
             keras.layers.Dense(n_actions)
         ])
         dqn.compile(loss=tf.keras.losses.Huber(), optimizer='adam')
 
         target_dqn = keras.Sequential([
-            keras.layers.Dense(10, input_dim=2, activation='relu'),
+            keras.layers.Dense(10, input_shape=input_shape, activation='relu'),
             keras.layers.Dense(n_actions)
         ])
         target_dqn.compile(loss=tf.keras.losses.Huber(), optimizer='adam')

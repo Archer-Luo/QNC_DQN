@@ -173,7 +173,15 @@ class Agent(object):
 
         # Use targets to calculate loss (and use loss to calculate gradients)
         with tf.GradientTape() as tape:
-            Q = np.amax(self.dqn.predict(states).squeeze(), axis=1)
+            # Q = np.amax(self.dqn.predict(states).squeeze(), axis=1)
+            # Q_tf = tf.convert_to_tensor(Q, np.float32)
+
+            q_values = self.dqn(states)
+
+            one_hot_actions = tf.keras.utils.to_categorical(actions, self.n_actions,
+                                                            dtype=np.float32)  # using tf.one_hot causes strange errors
+            Q = tf.reduce_sum(tf.multiply(q_values, one_hot_actions), axis=1)
+
             error = Q - target_q
             loss = tf.keras.losses.Huber()(target_q, Q)
 
