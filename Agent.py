@@ -69,7 +69,7 @@ class Agent(object):
         self.intercept_2 = self.eps_final_state - self.slope_2 * self.max_states
 
         # DQN
-        self.DQN = dqn
+        self.dqn = dqn
         self.target_dqn = target_dqn
 
     def calc_epsilon(self, state_number, evaluation=False):
@@ -140,7 +140,7 @@ class Agent(object):
 
     def update_target_network(self):
         """Update the target Q network"""
-        self.target_dqn.set_weights(self.DQN.get_weights())
+        self.target_dqn.set_weights(self.dqn.get_weights())
 
     def add_experience(self, action, state, reward, terminal):
         """Wrapper function for adding an experience to the Agent's replay buffer"""
@@ -173,8 +173,7 @@ class Agent(object):
 
         # Use targets to calculate loss (and use loss to calculate gradients)
         with tf.GradientTape() as tape:
-            q_values = self.DQN.predict(states).squeeze()
-            Q = q_values[np.arange(batch_size), arg_q_max]
+            Q = np.amax(self.dqn.predict(states).squeeze(), axis=1)
             error = Q - target_q
             loss = tf.keras.losses.Huber()(target_q, Q)
 
@@ -184,8 +183,8 @@ class Agent(object):
                 # more frequently.
                 loss = tf.reduce_mean(loss * importance)
 
-        model_gradients = tape.gradient(loss, self.DQN.trainable_variables)
-        self.DQN.optimizer.apply_gradients(zip(model_gradients, self.DQN.trainable_variables))
+        model_gradients = tape.gradient(loss, self.dqn.trainable_variables)
+        self.dqn.optimizer.apply_gradients(zip(model_gradients, self.dqn.trainable_variables))
 
         if self.use_per:
             self.replay_buffer.set_priorities(indices, error)
