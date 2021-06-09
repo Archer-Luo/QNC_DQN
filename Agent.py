@@ -107,8 +107,9 @@ class Agent(object):
             return np.random.randint(0, self.n_actions)
 
         # Otherwise, query the DQN for an action
-        q_vals = self.DQN.predict(state).flatten()  # TODO: correct input here?
-        return q_vals.argmax()
+        q_vals = self.dqn.predict(np.expand_dims(state, axis=0))
+        action = q_vals.argmax()
+        return action
 
     # def get_intermediate_representation(self, state, layer_names=None, stack_state=True):
     #     """
@@ -176,7 +177,7 @@ class Agent(object):
             # Q = np.amax(self.dqn.predict(states).squeeze(), axis=1)
             # Q_tf = tf.convert_to_tensor(Q, np.float32)
 
-            q_values = self.dqn(states)
+            q_values = tf.squeeze(self.dqn(states))
 
             one_hot_actions = tf.keras.utils.to_categorical(actions, self.n_actions,
                                                             dtype=np.float32)  # using tf.one_hot causes strange errors

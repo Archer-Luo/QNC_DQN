@@ -39,13 +39,13 @@ if __name__ == "__main__":
         current_state = np.copy(start_state)
 
         dqn = keras.Sequential([
-            keras.layers.Dense(10, input_shape=input_shape, activation='relu'),
+            keras.layers.Dense(10, input_shape=(1, 2), activation='relu'),
             keras.layers.Dense(n_actions)
         ])
         dqn.compile(loss=tf.keras.losses.Huber(), optimizer='adam')
 
         target_dqn = keras.Sequential([
-            keras.layers.Dense(10, input_shape=input_shape, activation='relu'),
+            keras.layers.Dense(10, input_shape=(1, 2), activation='relu'),
             keras.layers.Dense(n_actions)
         ])
         target_dqn.compile(loss=tf.keras.losses.Huber(), optimizer='adam')
@@ -60,7 +60,7 @@ if __name__ == "__main__":
             if t % C == 0:
                 agent.update_target_network()
             action = agent.get_action(t, current_state)
-            next_state = network.next_state_N1(current_state, action).flatten()
+            next_state = network.next_state_N1(current_state, action)
             reward = -((next_state - current_state) @ h)
             terminal = (t == max_time_step - 1)
             agent.add_experience(action, current_state, reward, terminal)
