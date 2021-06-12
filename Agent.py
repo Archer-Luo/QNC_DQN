@@ -5,7 +5,6 @@ import numpy as np
 
 import tensorflow as tf
 
-
 class Agent(object):
     """Implements a standard DDDQN agent"""
 
@@ -184,7 +183,7 @@ class Agent(object):
             Q = tf.reduce_sum(tf.multiply(q_values, one_hot_actions), axis=1)
 
             error = Q - target_q
-            loss = tf.keras.losses.Huber()(target_q, Q)
+            loss = tf.keras.losses.MeanSquaredError()(target_q, Q)
 
             if self.use_per:
                 # Multiply the loss by importance, so that the gradient is also scaled.
