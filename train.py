@@ -10,7 +10,7 @@ import Agent
 if __name__ == "__main__":
     state_shape = (2,)
     n_actions = 2
-    rb_size = 4000
+    rb_size = 512
     batch_size = 8
     eps_initial = 1
     eps_final = 0.1
@@ -23,12 +23,10 @@ if __name__ == "__main__":
     max_episode = 50
     start_state = np.array([5, 5])
     h = np.array([3, 1])
-    gamma = 0.9
+    gamma = 0.995
     priority_scale = 0.7
     C = 8
-    rho_list = [0.8, 0.9, 0.95]
-
-    # strategy = tf.distribute.MirroredStrategy()
+    rho_list = [0.85]
 
     for rho in rho_list:
         network = NmodelDynamics.ProcessingNetwork.Nmodel_from_load(rho)
@@ -71,10 +69,10 @@ if __name__ == "__main__":
             current_state = next_state
             print(t)
 
-        action_result = np.empty([10, 10])
-        v_result = np.empty([10, 10])
-        for a in range(10):
-            for b in range(10):
+        action_result = np.empty([50, 50])
+        v_result = np.empty([50, 50])
+        for a in range(50):
+            for b in range(50):
                 state = np.array([a, b])
                 action = agent.get_action(0, state, True)
                 action_result[a][b] = action + 1

@@ -5,6 +5,7 @@ import numpy as np
 
 import tensorflow as tf
 
+
 class Agent(object):
     """Implements a standard DDDQN agent"""
 
@@ -109,34 +110,6 @@ class Agent(object):
         q_vals = self.dqn.predict(np.expand_dims(state, axis=0))
         action = q_vals.argmax()
         return action
-
-    # def get_intermediate_representation(self, state, layer_names=None, stack_state=True):
-    #     """
-    #     Get the output of a hidden layer inside the model.  This will be/is used for visualizing model
-    #     Arguments:
-    #         state: The input to the model to get outputs for hidden layers from
-    #         layer_names: Names of the layers to get outputs from.  This can be a list of multiple names, or a single name
-    #         stack_state: Stack `state` four times so the model can take input on a single (84, 84, 1) state
-    #     Returns:
-    #         Outputs to the hidden layers specified, in the order they were specified.
-    #     """
-    #     # Prepare list of layers
-    #     if isinstance(layer_names, list) or isinstance(layer_names, tuple):
-    #         layers = [self.DQN.get_layer(name=layer_name).output for layer_name in layer_names]
-    #     else:
-    #         layers = self.DQN.get_layer(name=layer_names).output
-    #
-    #     # Model for getting intermediate output
-    #     temp_model = tf.keras.Model(self.DQN.inputs, layers)
-    #
-    #     # Stack state 4 times
-    #     if stack_state:
-    #         if len(state.shape) == 2:
-    #             state = state[:, :, np.newaxis]
-    #         state = np.repeat(state, self.history_length, axis=2)
-    #
-    #     # Put it all together
-    #     return temp_model.predict(state.reshape((-1, self.input_shape[0], self.input_shape[1], self.history_length)))
 
     def update_target_network(self):
         """Update the target Q network"""
