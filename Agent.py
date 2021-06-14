@@ -2,6 +2,7 @@ import json
 import os
 
 import numpy as np
+import ray
 
 import tensorflow as tf
 
@@ -107,13 +108,13 @@ class Agent(object):
             return np.random.randint(0, self.n_actions)
 
         # Otherwise, query the DQN for an action
-        q_vals = self.dqn.predict(np.expand_dims(state, axis=0))
+        q_vals = self.dqn.predict.remote(np.expand_dims(state, axis=0))
         action = q_vals.argmax()
         return action
 
     def update_target_network(self):
         """Update the target Q network"""
-        self.target_dqn.set_weights(self.dqn.get_weights())
+        self.target_dqn.set_weights.remote(self.dqn.get_weights.remote())
 
     def add_experience(self, action, state, reward, terminal):
         """Wrapper function for adding an experience to the Agent's replay buffer"""
@@ -139,17 +140,26 @@ class Agent(object):
                 batch_size=self.batch_size, priority_scale=priority_scale)
 
         # Target DQN estimates q-vals for new states
-        target_future_v = np.amax(self.target_dqn.predict(new_states).squeeze(), axis=1)
+        result_ids = []
+        for state in new_states:
+            result_ids.append(self.target_dqn.predict.remote(np.expand_dims(state, axis=0)))
+
+        results = ray.get(result_ids)
+        target_future_v = np.amax(np.array(results).squeeze(), axis=1)
 
         # Calculate targets (bellman equation)
         target_q = rewards + (gamma * target_future_v * (1 - terminal_flags))
 
         # Use targets to calculate loss (and use loss to calculate gradients)
         with tf.GradientTape() as tape:
-            # Q = np.amax(self.dqn.predict(states).squeeze(), axis=1)
-            # Q_tf = tf.convert_to_tensor(Q, np.float32)
+            trainable_variables = ray.get(self.dqn.trainable_variables.remote())
+            tape.watch(trainable_variables)
 
-            q_values = tf.squeeze(self.dqn(states))
+            predict_ids = []
+            for state in states:
+                predict_ids.append(self.dqn.call.remote(np.expand_dims(state, axis=0)))
+
+            q_values = tf.squeeze(tf.stack(ray.get(predict_ids)))
 
             one_hot_actions = tf.keras.utils.to_categorical(actions, self.n_actions,
                                                             dtype=np.float32)  # using tf.one_hot causes strange errors
@@ -164,8 +174,8 @@ class Agent(object):
                 # more frequently.
                 loss = tf.reduce_mean(loss * importance)
 
-        model_gradients = tape.gradient(loss, self.dqn.trainable_variables)
-        self.dqn.optimizer.apply_gradients(zip(model_gradients, self.dqn.trainable_variables))
+        model_gradients = tape.gradient(loss, trainable_variables)
+        self.dqn.apply_gradients.remote(model_gradients, trainable_variables)
 
         if self.use_per:
             self.replay_buffer.set_priorities(indices, error)
