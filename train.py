@@ -23,7 +23,7 @@ if __name__ == "__main__":
     use_per = True
     max_episode = 50
     max_states = 2 ** 14
-    batch_size = 2 ** 4
+    batch_size = 2 ** 2
     rb_size = max_states
     eps_initial = 1
     eps_final = 0.1
@@ -42,13 +42,13 @@ if __name__ == "__main__":
             keras.layers.Dense(10, input_dim=2, activation='relu'),
             keras.layers.Dense(n_actions)
         ])
-        dqn.compile(loss=tf.keras.losses.Huber(delta=1.35), optimizer=tf.keras.optimizers.Adam(learning_rate=0.00025, epsilon=0.0001))
+        dqn.compile(loss=tf.keras.losses.Huber(delta=1.35), optimizer=tf.keras.optimizers.Adam(learning_rate=0.00025, epsilon=0.001))
 
         target_dqn = keras.Sequential([
             keras.layers.Dense(10, input_dim=2, activation='relu'),
             keras.layers.Dense(n_actions)
         ])
-        target_dqn.compile(loss=tf.keras.losses.Huber(delta=1.35), optimizer=tf.keras.optimizers.Adam(learning_rate=0.00025, epsilon=0.0001))
+        target_dqn.compile(loss=tf.keras.losses.Huber(delta=1.35), optimizer=tf.keras.optimizers.Adam(learning_rate=0.00025, epsilon=0.001))
 
         replay_buffer = ReplayBuffer.ReplayBuffer(rb_size, state_shape, use_per, offset)
 
