@@ -1,11 +1,35 @@
+import math
+import tensorflow as tf
 import numpy as np
 import NmodelDynamics
 import ReplayBuffer
 import Agent
 import Network
-import ray
 
-ray.init()
+if __name__ == "__main__":
+    state_shape = (2,)
+    n_actions = 2
+
+    rho_list = [0.8]
+    h = np.array([3, 1])
+    start_state = np.array([5, 5])
+    gamma = 0.995
+
+    priority_scale = 0.7
+    offset = 0.1
+
+    use_per = True
+    max_episode = 50
+    max_states = 2 ** 14
+    batch_size = 2 ** 2
+    rb_size = max_states
+    eps_initial = 1
+    eps_final = 0.1
+    eps_final_state = 0.1
+    eps_evaluation = 0.0
+    C = 256
+    replay_buffer_start_size = batch_size
+    eps_annealing_states = int(max_states / 5)
 
 if __name__ == "__main__":
     state_shape = (2,)
@@ -33,11 +57,19 @@ if __name__ == "__main__":
 
         current_state = np.copy(start_state)
 
-        dqn = Network.Network.remote(n_actions)
+        dqn = keras.Sequential([
+            keras.layers.Dense(10, input_dim=2, activation='relu'),
+            keras.layers.Dense(n_actions)
+        ])
+        dqn.compile(loss=tf.keras.losses.Huber(delta=1.35), optimizer=tf.keras.optimizers.Adam(learning_rate=0.00025, epsilon=0.001))
 
-        target_dqn = Network.Network.remote(n_actions)
+        target_dqn = keras.Sequential([
+            keras.layers.Dense(10, input_dim=2, activation='relu'),
+            keras.layers.Dense(n_actions)
+        ])
+        target_dqn.compile(loss=tf.keras.losses.Huber(delta=1.35), optimizer=tf.keras.optimizers.Adam(learning_rate=0.00025, epsilon=0.001))
 
-        replay_buffer = ReplayBuffer.ReplayBuffer(rb_size, state_shape, use_per)
+        replay_buffer = ReplayBuffer.ReplayBuffer(rb_size, state_shape, use_per, offset)
 
         agent = Agent.Agent(dqn, target_dqn, replay_buffer, n_actions, state_shape, batch_size, eps_initial,
                                    eps_final,
@@ -51,11 +83,12 @@ if __name__ == "__main__":
             action = agent.get_action(t, current_state)
             # print('current state is %s, action %d is taken' % (current_state, action,))
             next_state = network.next_state_N1(current_state, action)
-            reward = -((next_state - current_state) @ h)
+            reward = -(current_state @ h)
             terminal = (t == max_states - 1)
             agent.add_experience(action, current_state, reward, terminal)
             if replay_buffer.count > replay_buffer_start_size:
-                agent.learn(batch_size, gamma, t, priority_scale)
+                loss, error = agent.learn(batch_size, gamma, t, priority_scale)
+                print(loss)
             current_state = next_state
             print(t)
 
@@ -64,9 +97,8 @@ if __name__ == "__main__":
         for a in range(50):
             for b in range(50):
                 state = np.array([a, b])
-                values = agent.dqn.predict(np.expand_dims(state, axis=0))
-                action = values.argmax()
-                action_result[a][b] = action + 1
+                values = agent.dqn.predict(np.expand_dims(state, axis=0)).squeeze()
+                action_result[a][b] = np.argmax(values) + 1
                 v_result[a][b] = np.amax(values)
 
         np.savetxt('rho{0}_gamma{1}_action'.format(rho, gamma), action_result, fmt='%i', delimiter=",")

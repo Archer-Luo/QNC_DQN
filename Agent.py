@@ -24,7 +24,8 @@ class Agent(object):
                  eps_annealing_states=1000000,
                  replay_buffer_start_size=50000,
                  max_states=25000000,
-                 use_per=True):
+                 use_per=True
+                 ):
         """
         Arguments:
             dqn: A DQN (returned by the DQN function) to predict moves
@@ -166,7 +167,7 @@ class Agent(object):
             Q = tf.reduce_sum(tf.multiply(q_values, one_hot_actions), axis=1)
 
             error = Q - target_q
-            loss = tf.keras.losses.MeanSquaredError()(target_q, Q)
+            loss = tf.keras.losses.Huber(delta=1.35)(target_q, Q)
 
             if self.use_per:
                 # Multiply the loss by importance, so that the gradient is also scaled.

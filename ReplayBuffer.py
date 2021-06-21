@@ -7,7 +7,7 @@ class ReplayBuffer:
     """Replay Buffer to store transitions.
     This implementation was heavily inspired by Fabio M. Graetz's replay buffer
     here: https://github.com/fg91/Deep-Q-Learning/blob/master/DQN.ipynb"""
-    def __init__(self, size=1000000, input_shape=(1, 2), use_per=True):
+    def __init__(self, size=1000000, input_shape=(1, 2), use_per=True, offset=0.1):
         """
         Arguments:
             size: Integer, Number of stored transitions
@@ -24,9 +24,12 @@ class ReplayBuffer:
         self.rewards = np.empty(self.size, dtype=np.float32)
         self.terminal_flags = np.empty(self.size, dtype=np.bool)
         self.states = np.empty((self.size, 2), dtype=np.uint8)
-        self.priorities = np.zeros(self.size, dtype=np.float32)
-
+        if use_per:
+            self.priorities = np.full(self.size, fill_value=offset, dtype=np.float32)
+        else:
+            self.priorities = np.empty(self.size, dtype=np.float32)
         self.use_per = use_per
+        self.offset = offset
 
     def add_experience(self, action, state, reward, terminal):
         """Saves a transition to the replay buffer
@@ -85,7 +88,7 @@ class ReplayBuffer:
 
             return states, self.actions[indices], self.rewards[indices], new_states, self.terminal_flags[indices]
 
-    def set_priorities(self, indices, errors, offset=0.1):
+    def set_priorities(self, indices, errors):
         """Update priorities for PER
         Arguments:
             indices: Indices to update
@@ -93,7 +96,7 @@ class ReplayBuffer:
             offset: base priority scale
         """
         for i, e in zip(indices, errors):
-            self.priorities[i] = abs(e) + offset
+            self.priorities[i] = abs(e) + self.offset
 
     def save(self, folder_name):
         """Save the replay buffer to a folder"""
