@@ -1,12 +1,10 @@
 import math
-
 import tensorflow as tf
 import numpy as np
-from tensorflow.python import keras
-
 import NmodelDynamics
 import ReplayBuffer
 import Agent
+import Network
 
 if __name__ == "__main__":
     state_shape = (2,)
@@ -33,6 +31,27 @@ if __name__ == "__main__":
     replay_buffer_start_size = batch_size
     eps_annealing_states = int(max_states / 5)
 
+if __name__ == "__main__":
+    state_shape = (2,)
+    n_actions = 2
+    rb_size = 4000
+    batch_size = 8
+    eps_initial = 1
+    eps_final = 0.1
+    eps_final_state = 0.01
+    eps_evaluation = 0.0
+    eps_annealing_states = 4000
+    replay_buffer_start_size = 1000
+    max_states = 10000
+    use_per = True
+    max_episode = 50
+    start_state = np.array([5, 5])
+    h = np.array([3, 1])
+    gamma = 0.995
+    priority_scale = 0.7
+    C = 32
+    rho_list = [0.85]
+
     for rho in rho_list:
         network = NmodelDynamics.ProcessingNetwork.Nmodel_from_load(rho)
 
@@ -56,9 +75,11 @@ if __name__ == "__main__":
 
         replay_buffer = ReplayBuffer.ReplayBuffer(rb_size, state_shape, use_per, offset)
 
-        agent = Agent.Agent(dqn, target_dqn, replay_buffer, n_actions, state_shape, batch_size, eps_initial, eps_final,
-                            eps_final_state, eps_evaluation, eps_annealing_states, replay_buffer_start_size, max_states,
-                            use_per)
+        agent = Agent.Agent(dqn, target_dqn, replay_buffer, n_actions, state_shape, batch_size, eps_initial,
+                                   eps_final,
+                                   eps_final_state, eps_evaluation, eps_annealing_states, replay_buffer_start_size,
+                                   max_states,
+                                   use_per)
 
         for t in range(max_states):
             if t % C == 0:
